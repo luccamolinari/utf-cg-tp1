@@ -99,10 +99,13 @@ function drawRect(rect, color) {
   gl.drawArrays(gl.TRIANGLES, 0, 6);
 }
 
-function render() {
-  let ultimoTempo = 0;
+let ultimoTempo = 0;
 
 function render(tempoAtual) {
+  if (ultimoTempo === 0) {
+    ultimoTempo = tempoAtual;
+  }
+
   const dt = (tempoAtual - ultimoTempo) / 1000;
   ultimoTempo = tempoAtual;
 
@@ -119,6 +122,3 @@ function render(tempoAtual) {
 }
 
 requestAnimationFrame(render);
-}
-
-render();
