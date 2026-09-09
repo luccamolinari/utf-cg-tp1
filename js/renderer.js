@@ -140,3 +140,48 @@ export function createSpriteRenderer(gl, largura, altura) {
         gl.drawArrays(gl.TRIANGLES, 0, 6);
     };
 }
+
+const RECT_VERT = `#version 300 es
+layout(location = 0) in vec2 aPosition;
+uniform vec2 uResolution;
+uniform vec2 uOffset;
+uniform vec2 uScale;
+
+void main() {
+  vec2 pos = aPosition * uScale + uOffset;
+  vec2 clipSpace = (pos / uResolution) * 2.0 - 1.0;
+  gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+}
+`;
+
+const RECT_FRAG = `#version 300 es
+precision mediump float;
+uniform vec4 uColor;
+out vec4 fragColor;
+
+void main() {
+  fragColor = uColor;
+}
+`;
+
+export function createRectRenderer(gl, largura, altura) {
+    const program = createProgram(gl, RECT_VERT, RECT_FRAG);
+    const vao = createQuadVAO(gl);
+
+    const uResolution = gl.getUniformLocation(program, "uResolution");
+    const uOffset = gl.getUniformLocation(program, "uOffset");
+    const uScale = gl.getUniformLocation(program, "uScale");
+    const uColor = gl.getUniformLocation(program, "uColor");
+
+    return function drawRect(rect, cor) {
+        gl.useProgram(program);
+        gl.bindVertexArray(vao);
+
+        gl.uniform2f(uResolution, largura, altura);
+        gl.uniform2f(uOffset, rect.x, rect.y);
+        gl.uniform2f(uScale, rect.w, rect.h);
+        gl.uniform4f(uColor, cor[0], cor[1], cor[2], cor[3]);
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+    };
+}
