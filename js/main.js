@@ -1,4 +1,5 @@
-import { createGL, createProgram } from "./renderer.js";
+import { createGL, createProgram, createTexture, createSpriteRenderer, frameRect } from "./renderer.js";
+import { loadImages } from "./assets.js";
 
 const VERT_SRC = `#version 300 es
 layout(location = 0) in vec2 aPosition;
@@ -26,6 +27,19 @@ void main() {
 const canvas = document.getElementById("game-canvas");
 const gl = createGL(canvas);
 const program = createProgram(gl, VERT_SRC, FRAG_SRC);
+
+gl.enable(gl.BLEND);
+gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+const drawSprite = createSpriteRenderer(gl, canvas.width, canvas.height);
+
+const imagens = await loadImages({
+  castelo: "assets/sprites/predios/Castle.png",
+  arqueiro: "assets/sprites/torres/arqueiro/Archer_Idle.png",
+});
+
+const castelo = createTexture(gl, imagens.castelo);
+const arqueiro = createTexture(gl, imagens.arqueiro);
 
 const quadrado = new Float32Array([
     0, 0,
@@ -117,6 +131,10 @@ function render(tempoAtual) {
 
   drawRect(torre, [0.6, 0.4, 0.2, 1]);
   drawRect(inimigo, [0.8, 0.1, 0.1, 1]);
+
+  drawSprite(castelo, { x: 620, y: 120, w: 320, h: 256 });
+  drawSprite(arqueiro, { x: 80, y: 300, w: 192, h: 192 }, frameRect(arqueiro, 0, 192));
+  drawSprite(arqueiro, { x: 280, y: 300, w: 192, h: 192 }, frameRect(arqueiro, 3, 192));
 
   requestAnimationFrame(render);
 }
