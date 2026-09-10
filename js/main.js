@@ -1,6 +1,7 @@
 import { createGL, createRectRenderer, createSpriteRenderer, createTexture } from "./renderer.js";
 import { loadImages } from "./assets.js";
 import { LARGURA, ALTURA, desenharMapa, desenharDestaque, tileNaPosicao } from "./mapa.js";
+import { FOLHAS, TIPOS, criarInimigo, atualizarInimigos, desenharInimigos } from "./inimigos.js";
 
 const canvas = document.getElementById("game-canvas");
 canvas.width = LARGURA;
@@ -17,12 +18,13 @@ const drawRect = createRectRenderer(gl, LARGURA, ALTURA);
 const imagens = await loadImages({
   terreno: "assets/sprites/terreno/Tilemap_Flat.png",
   castelo: "assets/sprites/predios/Castle.png",
+  ...FOLHAS,
 });
 
-const texturas = {
-  terreno: createTexture(gl, imagens.terreno),
-  castelo: createTexture(gl, imagens.castelo),
-};
+const texturas = {};
+for (const nome of Object.keys(imagens)) {
+  texturas[nome] = createTexture(gl, imagens[nome]);
+}
 
 let tileApontado = null;
 
@@ -38,9 +40,23 @@ canvas.addEventListener("mouseleave", function () {
   tileApontado = null;
 });
 
+const inimigos = [];
+const NOMES_DOS_TIPOS = Object.keys(TIPOS);
+
+let tempo = 0;
 let ultimoTempo = 0;
+let proximoSpawn = 0;
 
 function atualizar(dt) {
+  tempo += dt;
+  proximoSpawn -= dt;
+
+  if (proximoSpawn <= 0) {
+    inimigos.push(criarInimigo(NOMES_DOS_TIPOS[Math.floor(Math.random() * NOMES_DOS_TIPOS.length)]));
+    proximoSpawn = 1.4;
+  }
+
+  atualizarInimigos(inimigos, dt);
 }
 
 function render(tempoAtual) {
@@ -58,6 +74,7 @@ function render(tempoAtual) {
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   desenharMapa(drawSprite, drawRect, texturas);
+  desenharInimigos(drawSprite, texturas, inimigos, tempo);
   desenharDestaque(drawRect, tileApontado);
 
   requestAnimationFrame(render);

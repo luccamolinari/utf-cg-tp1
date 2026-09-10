@@ -58,6 +58,50 @@ function construirCaminho() {
 export const CAMINHO = construirCaminho();
 const TERRENO_LIVRE = calcularTerrenoLivre();
 
+const ACUMULADO = (function () {
+  const distancias = [0];
+
+  for (let i = 1; i < CAMINHO.length; i++) {
+    const anterior = CAMINHO[i - 1];
+    const atual = CAMINHO[i];
+    distancias.push(distancias[i - 1] + Math.hypot(atual.x - anterior.x, atual.y - anterior.y));
+  }
+
+  return distancias;
+})();
+
+export const COMPRIMENTO_DO_CAMINHO = ACUMULADO[ACUMULADO.length - 1];
+
+export function posicaoNoCaminho(distancia) {
+  if (distancia <= 0) {
+    return CAMINHO[0];
+  }
+
+  if (distancia >= COMPRIMENTO_DO_CAMINHO) {
+    return CAMINHO[CAMINHO.length - 1];
+  }
+
+  let baixo = 0;
+  let alto = ACUMULADO.length - 1;
+
+  while (alto - baixo > 1) {
+    const meio = (baixo + alto) >> 1;
+    if (ACUMULADO[meio] <= distancia) {
+      baixo = meio;
+    } else {
+      alto = meio;
+    }
+  }
+
+  const trecho = ACUMULADO[alto] - ACUMULADO[baixo];
+  const t = trecho === 0 ? 0 : (distancia - ACUMULADO[baixo]) / trecho;
+
+  return {
+    x: CAMINHO[baixo].x + (CAMINHO[alto].x - CAMINHO[baixo].x) * t,
+    y: CAMINHO[baixo].y + (CAMINHO[alto].y - CAMINHO[baixo].y) * t,
+  };
+}
+
 function distanciaDoCaminho(x, y) {
   let menor = Infinity;
 
