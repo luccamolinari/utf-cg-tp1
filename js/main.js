@@ -1,6 +1,6 @@
 import { createGL, createRectRenderer, createSpriteRenderer, createTexture } from "./renderer.js";
 import { loadImages } from "./assets.js";
-import { LARGURA, ALTURA, desenharMapa } from "./mapa.js";
+import { LARGURA, ALTURA, desenharMapa, desenharDestaque, tileNaPosicao } from "./mapa.js";
 
 const canvas = document.getElementById("game-canvas");
 canvas.width = LARGURA;
@@ -24,6 +24,20 @@ const texturas = {
   castelo: createTexture(gl, imagens.castelo),
 };
 
+let tileApontado = null;
+
+canvas.addEventListener("mousemove", function (evento) {
+  const area = canvas.getBoundingClientRect();
+  const x = (evento.clientX - area.left) * (canvas.width / area.width);
+  const y = (evento.clientY - area.top) * (canvas.height / area.height);
+
+  tileApontado = tileNaPosicao(x, y);
+});
+
+canvas.addEventListener("mouseleave", function () {
+  tileApontado = null;
+});
+
 let ultimoTempo = 0;
 
 function atualizar(dt) {
@@ -44,6 +58,7 @@ function render(tempoAtual) {
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   desenharMapa(drawSprite, drawRect, texturas);
+  desenharDestaque(drawRect, tileApontado);
 
   requestAnimationFrame(render);
 }

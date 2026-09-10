@@ -13,6 +13,7 @@ const PONTOS_POR_TRECHO = 24;
 const PASSO_DO_DESENHO = 3;
 
 const CASTELO = { x: 900, y: 90, w: 320, h: 256 };
+const FOLGA_DO_CAMINHO = 64;
 
 const CONTROLE = [
   { x: -80, y: 200 },
@@ -29,16 +30,6 @@ const CONTROLE = [
   { x: 1060, y: 369 },
 ];
 
-export const PONTOS_DE_TORRE = [
-  { x: 400, y: 144 },
-  { x: 336, y: 368 },
-  { x: 176, y: 464 },
-  { x: 112, y: 656 },
-  { x: 624, y: 592 },
-  { x: 784, y: 560 },
-  { x: 944, y: 528 },
-  { x: 1136, y: 560 },
-];
 
 function pontoDaCurva(p0, p1, p2, p3, t) {
   const t2 = t * t;
@@ -65,6 +56,64 @@ function construirCaminho() {
 }
 
 export const CAMINHO = construirCaminho();
+const TERRENO_LIVRE = calcularTerrenoLivre();
+
+function distanciaDoCaminho(x, y) {
+  let menor = Infinity;
+
+  for (const ponto of CAMINHO) {
+    const distancia = Math.hypot(x - ponto.x, y - ponto.y);
+    if (distancia < menor) {
+      menor = distancia;
+    }
+  }
+
+  return menor;
+}
+
+function encostaNoCastelo(coluna, linha) {
+  const area = areaDoTile(coluna, linha);
+
+  return area.x < CASTELO.x + CASTELO.w
+    && area.x + area.w > CASTELO.x
+    && area.y < CASTELO.y + CASTELO.h
+    && area.y + area.h > CASTELO.y;
+}
+
+function calcularTerrenoLivre() {
+  const livre = [];
+
+  for (let linha = 0; linha < LINHAS; linha++) {
+    livre.push([]);
+    for (let coluna = 0; coluna < COLUNAS; coluna++) {
+      const centro = { x: coluna * LADO_TILE + LADO_TILE / 2, y: linha * LADO_TILE + LADO_TILE / 2 };
+      livre[linha].push(distanciaDoCaminho(centro.x, centro.y) > FOLGA_DO_CAMINHO && !encostaNoCastelo(coluna, linha));
+    }
+  }
+
+  return livre;
+}
+
+export function podeConstruir(coluna, linha) {
+  if (coluna < 0 || coluna >= COLUNAS || linha < 0 || linha >= LINHAS) {
+    return false;
+  }
+
+  return TERRENO_LIVRE[linha][coluna];
+}
+
+export function tileNaPosicao(x, y) {
+  return { coluna: Math.floor(x / LADO_TILE), linha: Math.floor(y / LADO_TILE) };
+}
+
+export function desenharDestaque(drawRect, tile) {
+  if (!tile) {
+    return;
+  }
+
+  const cor = podeConstruir(tile.coluna, tile.linha) ? [0.4, 1, 0.4, 0.35] : [1, 0.3, 0.3, 0.35];
+  drawRect(areaDoTile(tile.coluna, tile.linha), cor);
+}
 
 export function areaDoTile(coluna, linha) {
   return { x: coluna * LADO_TILE, y: linha * LADO_TILE, w: LADO_TILE, h: LADO_TILE };
@@ -91,8 +140,4 @@ export function desenharMapa(drawSprite, drawRect, texturas) {
   }
 
   drawSprite(texturas.castelo, CASTELO);
-
-  for (const ponto of PONTOS_DE_TORRE) {
-    drawRect({ x: ponto.x - LADO_TILE / 2, y: ponto.y - LADO_TILE / 2, w: LADO_TILE, h: LADO_TILE }, [1, 1, 1, 0.22]);
-  }
 }
