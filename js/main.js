@@ -1,7 +1,8 @@
 import { createGL, createRectRenderer, createSpriteRenderer, createTexture } from "./renderer.js";
 import { loadImages } from "./assets.js";
-import { LARGURA, ALTURA, desenharMapa, desenharDestaque, tileNaPosicao } from "./mapa.js";
-import { FOLHAS, TIPOS, criarInimigo, atualizarInimigos, desenharInimigos } from "./inimigos.js";
+import { LARGURA, ALTURA, desenharMapa, desenharDestaque, tileNaPosicao, podeConstruir } from "./mapa.js";
+import { FOLHAS, TIPOS, criarInimigo, atualizarInimigos, desenharInimigos, removerMortos } from "./inimigos.js";
+import { FOLHAS as FOLHAS_DE_TORRE, TIPOS as TIPOS_DE_TORRE, criarTorre, torreEm, atualizarTorres, atualizarProjeteis, desenharTorres, desenharProjeteis } from "./torres.js";
 
 const canvas = document.getElementById("game-canvas");
 canvas.width = LARGURA;
@@ -19,6 +20,7 @@ const imagens = await loadImages({
   terreno: "assets/sprites/terreno/Tilemap_Flat.png",
   castelo: "assets/sprites/predios/Castle.png",
   ...FOLHAS,
+  ...FOLHAS_DE_TORRE,
 });
 
 const texturas = {};
@@ -41,6 +43,30 @@ canvas.addEventListener("mouseleave", function () {
 });
 
 const inimigos = [];
+const torres = [];
+const projeteis = [];
+const NOMES_DE_TORRE = Object.keys(TIPOS_DE_TORRE);
+
+let torreEscolhida = NOMES_DE_TORRE[0];
+let ouro = 0;
+
+window.addEventListener("keydown", function (evento) {
+  const indice = Number(evento.key) - 1;
+
+  if (indice >= 0 && indice < NOMES_DE_TORRE.length) {
+    torreEscolhida = NOMES_DE_TORRE[indice];
+  }
+});
+
+function podeColocar(tile) {
+  return tile !== null && podeConstruir(tile.coluna, tile.linha) && !torreEm(torres, tile.coluna, tile.linha);
+}
+
+canvas.addEventListener("click", function () {
+  if (podeColocar(tileApontado)) {
+    torres.push(criarTorre(torreEscolhida, tileApontado.coluna, tileApontado.linha));
+  }
+});
 const NOMES_DOS_TIPOS = Object.keys(TIPOS);
 
 let tempo = 0;
@@ -56,6 +82,9 @@ function atualizar(dt) {
     proximoSpawn = 1.4;
   }
 
+  atualizarTorres(torres, inimigos, projeteis, dt);
+  atualizarProjeteis(projeteis, inimigos, dt);
+  ouro += removerMortos(inimigos);
   atualizarInimigos(inimigos, dt);
 }
 
@@ -74,8 +103,10 @@ function render(tempoAtual) {
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   desenharMapa(drawSprite, drawRect, texturas);
-  desenharInimigos(drawSprite, texturas, inimigos, tempo);
-  desenharDestaque(drawRect, tileApontado);
+  desenharInimigos(drawSprite, drawRect, texturas, inimigos, tempo);
+  desenharTorres(drawSprite, texturas, torres, tempo);
+  desenharProjeteis(drawSprite, texturas, projeteis);
+  desenharDestaque(drawRect, tileApontado, podeColocar(tileApontado));
 
   requestAnimationFrame(render);
 }

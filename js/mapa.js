@@ -150,13 +150,12 @@ export function tileNaPosicao(x, y) {
   return { coluna: Math.floor(x / LADO_TILE), linha: Math.floor(y / LADO_TILE) };
 }
 
-export function desenharDestaque(drawRect, tile) {
+export function desenharDestaque(drawRect, tile, livre) {
   if (!tile) {
     return;
   }
 
-  const cor = podeConstruir(tile.coluna, tile.linha) ? [0.4, 1, 0.4, 0.35] : [1, 0.3, 0.3, 0.35];
-  drawRect(areaDoTile(tile.coluna, tile.linha), cor);
+  drawRect(areaDoTile(tile.coluna, tile.linha), livre ? [0.4, 1, 0.4, 0.35] : [1, 0.3, 0.3, 0.35]);
 }
 
 export function areaDoTile(coluna, linha) {
