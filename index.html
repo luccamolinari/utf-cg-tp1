@@ -6,7 +6,16 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <canvas id="game-canvas"></canvas>
+  <div id="jogo">
+    <div id="tabuleiro">
+      <canvas id="game-canvas"></canvas>
+      <div id="cartas" hidden>
+        <p id="cartas-titulo"></p>
+        <div id="cartas-lista"></div>
+      </div>
+    </div>
+    <p id="painel"></p>
+  </div>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
