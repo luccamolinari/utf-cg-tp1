@@ -26,8 +26,10 @@ export const TIPOS = {
   monge: {
     nome: "Monge",
     parado: "assets/sprites/torres/monge/Idle.png",
+    atirando: "assets/sprites/torres/monge/Heal.png",
     tamanho: 160, ancoraX: 0.5, ancoraY: 0.698, fps: 8,
     alcance: 130, lentidao: 0.5, custo: 90, vida: 140, antiAereo: false,
+    cura: 25, recargaDaCura: 3,
   },
 };
 
@@ -54,6 +56,8 @@ export const FOLHAS = (function () {
     mapa["projetil_" + nome] = PROJETEIS[nome].folha;
   }
 
+  mapa.efeitoDeCura = "assets/sprites/torres/monge/Heal_Effect.png";
+
   return mapa;
 })();
 
@@ -67,6 +71,7 @@ export function criarTorre(nomeTipo, coluna, linha) {
     vida: TIPOS[nomeTipo].vida,
     recarga: 0,
     tempoDeTiro: 0,
+    brilho: 0,
     alvoX: 1,
     alvoY: 0,
   };
@@ -118,9 +123,43 @@ function alvoDaTorre(torre, tipo, inimigos) {
   return melhor;
 }
 
+function curarVizinhas(monge, tipo, torres, dt) {
+  monge.recarga -= dt;
+  monge.tempoDeTiro = Math.max(0, monge.tempoDeTiro - dt);
+
+  if (monge.recarga > 0) {
+    return;
+  }
+
+  let curou = false;
+
+  for (const torre of torres) {
+    const maxima = TIPOS[torre.tipo].vida;
+    const dx = torre.x - monge.x;
+    const dy = torre.y - monge.y;
+
+    if (torre.vida >= maxima || dx * dx + dy * dy > tipo.alcance * tipo.alcance) {
+      continue;
+    }
+
+    torre.vida = Math.min(maxima, torre.vida + tipo.cura);
+    torre.brilho = 0.8;
+    curou = true;
+  }
+
+  if (curou) {
+    monge.recarga = tipo.recargaDaCura;
+    monge.tempoDeTiro = 1.3;
+  }
+}
+
 export function atualizarTorres(torres, inimigos, projeteis, dt) {
   for (const inimigo of inimigos) {
     inimigo.lentidao = 1;
+  }
+
+  for (const torre of torres) {
+    torre.brilho = Math.max(0, torre.brilho - dt);
   }
 
   for (const torre of torres) {
@@ -135,6 +174,8 @@ export function atualizarTorres(torres, inimigos, projeteis, dt) {
           inimigo.lentidao = Math.min(inimigo.lentidao, tipo.lentidao);
         }
       }
+
+      curarVizinhas(torre, tipo, torres, dt);
       continue;
     }
 
@@ -307,6 +348,13 @@ export function desenharTorres(drawSprite, drawRect, texturas, torres, tempo) {
         : { x, y, w: tipo.tamanho, h: tipo.tamanho },
       recorte
     );
+
+    if (torre.brilho > 0) {
+      const efeito = texturas.efeitoDeCura;
+      const quadros = Math.floor(efeito.largura / efeito.altura);
+      const quadro = Math.min(quadros - 1, Math.floor((0.8 - torre.brilho) / 0.8 * quadros));
+      drawSprite(efeito, { x: torre.x - 80, y: torre.y - 110, w: 160, h: 160 }, frameRect(efeito, quadro, efeito.altura));
+    }
 
     if (torre.vida < tipo.vida) {
       const largura = 44;
