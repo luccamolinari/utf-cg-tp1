@@ -47,6 +47,10 @@ html, body {
   top: 0;
 }
 
+#cartas[hidden] {
+  display: none;
+}
+
 #cartas-titulo {
   color: #f0e3c0;
   font-family: monospace;
