@@ -1,4 +1,4 @@
-import { TIPOS as INIMIGOS } from "./inimigos.js";
+import { TIPOS as INIMIGOS, DURACAO_DO_CASCO } from "./inimigos.js";
 import { frameRect } from "./renderer.js";
 
 export const TIPOS = {
@@ -76,13 +76,27 @@ export function torreEm(torres, coluna, linha) {
   return torres.some((torre) => torre.coluna === coluna && torre.linha === linha);
 }
 
+function prioridade(inimigo, tipo) {
+  const dados = INIMIGOS[inimigo.tipo];
+  let nota = inimigo.distancia;
+
+  if (dados.voador) {
+    nota += 100000;
+  }
+
+  if (tipo.projetil === "flecha" && dados.refleteFlecha) {
+    nota -= 100000;
+  }
+
+  return nota;
+}
+
 function alvoDaTorre(torre, tipo, inimigos) {
   let melhor = null;
+  let melhorNota = -Infinity;
 
   for (const inimigo of inimigos) {
-    const voador = INIMIGOS[inimigo.tipo].voador;
-
-    if (voador && !tipo.antiAereo) {
+    if (INIMIGOS[inimigo.tipo].voador && !tipo.antiAereo) {
       continue;
     }
 
@@ -93,16 +107,10 @@ function alvoDaTorre(torre, tipo, inimigos) {
       continue;
     }
 
-    if (!melhor) {
-      melhor = inimigo;
-      continue;
-    }
+    const nota = prioridade(inimigo, tipo);
 
-    const melhorVoador = INIMIGOS[melhor.tipo].voador;
-
-    if (voador && !melhorVoador) {
-      melhor = inimigo;
-    } else if (voador === melhorVoador && inimigo.distancia > melhor.distancia) {
+    if (nota > melhorNota) {
+      melhorNota = nota;
       melhor = inimigo;
     }
   }
@@ -150,6 +158,7 @@ export function atualizarTorres(torres, inimigos, projeteis, dt) {
         x: torre.x,
         y: torre.y - 18,
         alvo: alvo,
+        origem: torre,
         dano: tipo.dano,
         area: tipo.area || 0,
         velocidade: tipo.velocidadeDoTiro,
@@ -159,32 +168,79 @@ export function atualizarTorres(torres, inimigos, projeteis, dt) {
   }
 }
 
-export function atualizarProjeteis(projeteis, inimigos, dt) {
+function mover(projetil, destinoX, destinoY, dt) {
+  const dx = destinoX - projetil.x;
+  const dy = destinoY - projetil.y;
+  const distancia = Math.hypot(dx, dy);
+  const passo = projetil.velocidade * dt;
+
+  projetil.angulo = Math.atan2(dy, dx);
+
+  if (distancia <= passo) {
+    return true;
+  }
+
+  projetil.x += (dx / distancia) * passo;
+  projetil.y += (dy / distancia) * passo;
+  return false;
+}
+
+function refletir(projetil, inimigo, projeteis) {
+  inimigo.casco = DURACAO_DO_CASCO;
+
+  if (!projetil.origem) {
+    return;
+  }
+
+  projeteis.push({
+    tipo: projetil.tipo,
+    x: inimigo.x,
+    y: inimigo.y - 24,
+    alvoTorre: projetil.origem,
+    dano: projetil.dano,
+    area: 0,
+    velocidade: projetil.velocidade,
+    angulo: 0,
+  });
+}
+
+export function atualizarProjeteis(projeteis, inimigos, torres, dt) {
   for (let i = projeteis.length - 1; i >= 0; i--) {
     const projetil = projeteis[i];
 
-    if (projetil.alvo.vida <= 0 || !inimigos.includes(projetil.alvo)) {
+    if (projetil.alvoTorre) {
+      const torre = projetil.alvoTorre;
+
+      if (torre.vida <= 0 || !torres.includes(torre)) {
+        projeteis.splice(i, 1);
+        continue;
+      }
+
+      if (mover(projetil, torre.x, torre.y - 18, dt)) {
+        torre.vida -= projetil.dano;
+        projeteis.splice(i, 1);
+      }
+      continue;
+    }
+
+    const alvo = projetil.alvo;
+
+    if (alvo.vida <= 0 || !inimigos.includes(alvo)) {
       projeteis.splice(i, 1);
       continue;
     }
 
-    const destino = projetil.alvo;
-    const dx = destino.x - projetil.x;
-    const dy = destino.y - projetil.y - 24;
-    const distancia = Math.hypot(dx, dy);
-
-    projetil.angulo = Math.atan2(dy, dx);
-
-    const passo = projetil.velocidade * dt;
-
-    if (distancia <= passo) {
-      aplicarDano(projetil, destino, inimigos);
-      projeteis.splice(i, 1);
+    if (!mover(projetil, alvo.x, alvo.y - 24, dt)) {
       continue;
     }
 
-    projetil.x += (dx / distancia) * passo;
-    projetil.y += (dy / distancia) * passo;
+    projeteis.splice(i, 1);
+
+    if (projetil.tipo === "flecha" && INIMIGOS[alvo.tipo].refleteFlecha) {
+      refletir(projetil, alvo, projeteis);
+    } else {
+      aplicarDano(projetil, alvo, inimigos);
+    }
   }
 }
 

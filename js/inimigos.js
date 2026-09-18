@@ -26,8 +26,10 @@ export const TIPOS = {
   },
   turtle: {
     folha: "assets/sprites/inimigos/turtle/Turtle_Walk.png",
+    casco: "assets/sprites/inimigos/turtle/Turtle_Guard_In.png",
     tamanho: 152, ancoraX: 0.520, ancoraY: 0.650, alturaDoVoo: 0, alturaDaArte: 0.281,
     velocidade: 55, vida: 325, ouro: 13, fps: 11,
+    refleteFlecha: true,
   },
   minotaur: {
     folha: "assets/sprites/inimigos/minotaur/Minotaur_Walk.png",
@@ -44,6 +46,9 @@ export const FOLHAS = (function () {
     if (TIPOS[nome].atacando) {
       mapa[nome + "Atacando"] = TIPOS[nome].atacando;
     }
+    if (TIPOS[nome].casco) {
+      mapa[nome + "Casco"] = TIPOS[nome].casco;
+    }
   }
 
   return mapa;
@@ -52,6 +57,7 @@ export const FOLHAS = (function () {
 const ENTRADA = posicaoNoCaminho(0);
 const CASTELO = posicaoNoCaminho(COMPRIMENTO_DO_CAMINHO);
 const DISTANCIA_DE_ATAQUE = 34;
+export const DURACAO_DO_CASCO = 0.6;
 
 export function criarInimigo(nome) {
   return {
@@ -63,6 +69,7 @@ export function criarInimigo(nome) {
     lentidao: 1,
     olhandoParaEsquerda: false,
     atacando: false,
+    casco: 0,
     alvo: null,
     atraso: Math.random(),
   };
@@ -138,6 +145,8 @@ export function atualizarInimigos(lista, torres, dt) {
 
   for (let i = lista.length - 1; i >= 0; i--) {
     const inimigo = lista[i];
+    inimigo.casco = Math.max(0, inimigo.casco - dt);
+
     const chegou = TIPOS[inimigo.tipo].voador
       ? moverVoador(inimigo, torres, dt)
       : moverNoChao(inimigo, dt);
@@ -174,7 +183,8 @@ export function desenharInimigos(drawSprite, drawRect, texturas, lista, tempo) {
 
   for (const inimigo of ordenados) {
     const tipo = TIPOS[inimigo.tipo];
-    const recurso = texturas[inimigo.tipo + (inimigo.atacando ? "Atacando" : "")];
+    const fechado = inimigo.casco > 0 && tipo.casco;
+    const recurso = texturas[inimigo.tipo + (fechado ? "Casco" : inimigo.atacando ? "Atacando" : "")];
     const espelhado = inimigo.olhandoParaEsquerda;
 
     const fracao = espelhado ? 1 - tipo.ancoraX : tipo.ancoraX;
@@ -185,7 +195,11 @@ export function desenharInimigos(drawSprite, drawRect, texturas, lista, tempo) {
       ? { x: x + tipo.tamanho, y, w: -tipo.tamanho, h: tipo.tamanho }
       : { x, y, w: tipo.tamanho, h: tipo.tamanho };
 
-    drawSprite(recurso, destino, frameRect(recurso, quadroAtual(recurso, tempo + inimigo.atraso, tipo.fps), recurso.altura));
+    const quadro = fechado
+      ? Math.min(Math.floor(recurso.largura / recurso.altura) - 1, Math.floor((DURACAO_DO_CASCO - inimigo.casco) * 14))
+      : quadroAtual(recurso, tempo + inimigo.atraso, tipo.fps);
+
+    drawSprite(recurso, destino, frameRect(recurso, quadro, recurso.altura));
 
     if (inimigo.vida < tipo.vida) {
       const largura = 44;

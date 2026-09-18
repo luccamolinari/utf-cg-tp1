@@ -134,7 +134,7 @@ function atualizar(dt) {
   tempo += dt;
 
   atualizarTorres(torres, inimigos, projeteis, dt);
-  atualizarProjeteis(projeteis, inimigos, dt);
+  atualizarProjeteis(projeteis, inimigos, torres, dt);
   partida.ouro += removerMortos(inimigos);
 
   const chegaram = atualizarInimigos(inimigos, torres, dt);
