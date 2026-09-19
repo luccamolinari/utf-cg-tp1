@@ -1,9 +1,9 @@
-import { createGL, createRectRenderer, createSpriteRenderer, createTexture } from "./renderer.js";
+import { createGL, createRectRenderer, createSpriteRenderer, createCircleRenderer, createTexture } from "./renderer.js";
 import { loadImages } from "./assets.js";
 import { LARGURA, ALTURA, desenharMapa, desenharDestaque, tileNaPosicao, podeConstruir } from "./mapa.js";
 import { FOLHAS, atualizarInimigos, desenharInimigos, removerMortos } from "./inimigos.js";
 import { FOLHAS as FOLHAS_DE_TORRE, TIPOS as TIPOS_DE_TORRE, criarTorre, torreEm, atualizarTorres, atualizarProjeteis, removerTorresDestruidas, desenharTorres, desenharProjeteis } from "./torres.js";
-import { ORDAS, criarPartida, atualizarPartida, retomarDepoisDaCarta } from "./ondas.js";
+import { ORDAS, criarPartida, atualizarPartida, retomarDepoisDaCarta, pularEspera } from "./ondas.js";
 import { sortearCartas, aplicarCarta } from "./cartas.js";
 
 const canvas = document.getElementById("game-canvas");
@@ -17,6 +17,7 @@ gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
 const drawSprite = createSpriteRenderer(gl, LARGURA, ALTURA);
 const drawRect = createRectRenderer(gl, LARGURA, ALTURA);
+const drawCircle = createCircleRenderer(gl, LARGURA, ALTURA);
 
 const imagens = await loadImages({
   terreno: "assets/sprites/terreno/Tilemap_Flat.png",
@@ -39,7 +40,41 @@ const NOMES_DE_TORRE = Object.keys(TIPOS_DE_TORRE);
 let torreEscolhida = NOMES_DE_TORRE[0];
 let tileApontado = null;
 
-const painel = document.getElementById("painel");
+const textoOuro = document.getElementById("ouro");
+const textoVidas = document.getElementById("vidas");
+const textoOnda = document.getElementById("onda");
+const textoSituacao = document.getElementById("situacao");
+const botaoProxima = document.getElementById("proxima");
+const loja = document.getElementById("loja");
+const telaDeFim = document.getElementById("fim");
+const retratoDoFim = document.getElementById("fim-retrato");
+const tituloDoFim = document.getElementById("fim-titulo");
+const textoDoFim = document.getElementById("fim-texto");
+
+let torresConstruidas = 0;
+
+function mostrarFim() {
+  const venceu = partida.resultado === "vitoria";
+
+  retratoDoFim.src = venceu
+    ? "assets/sprites/inimigos/minotaur/Minotaur__Avatar.png"
+    : "assets/sprites/inimigos/torch-goblin/Torch Goblin_Avatar.png";
+
+  tituloDoFim.textContent = venceu ? "Vitória!" : "Derrota";
+
+  const construidas = `${torresConstruidas} ${torresConstruidas === 1 ? "torre construída" : "torres construídas"}`;
+
+  textoDoFim.textContent = venceu
+    ? `O castelo resistiu às ${ORDAS.length} ordas com ${partida.vidas} vidas sobrando e ${construidas}.`
+    : `O castelo caiu na orda ${partida.onda} de ${ORDAS.length}, com ${construidas}.`;
+
+  telaDeFim.classList.toggle("derrota", !venceu);
+  telaDeFim.hidden = false;
+}
+
+document.getElementById("reiniciar").addEventListener("click", function () {
+  location.reload();
+});
 const telaDeCartas = document.getElementById("cartas");
 const tituloDasCartas = document.getElementById("cartas-titulo");
 const listaDeCartas = document.getElementById("cartas-lista");
@@ -66,6 +101,25 @@ function mostrarCartas() {
 
   telaDeCartas.hidden = false;
 }
+
+const botoesDaLoja = {};
+
+for (const nome of NOMES_DE_TORRE) {
+  const botao = document.createElement("button");
+  botao.className = "torre";
+  botao.innerHTML = "<b></b><span></span><span></span>";
+  botao.addEventListener("click", function () {
+    torreEscolhida = nome;
+  });
+
+  const linhas = botao.querySelectorAll("span");
+  botoesDaLoja[nome] = { botao, titulo: botao.querySelector("b"), linha1: linhas[0], linha2: linhas[1] };
+  loja.appendChild(botao);
+}
+
+botaoProxima.addEventListener("click", function () {
+  pularEspera(partida);
+});
 
 window.addEventListener("keydown", function (evento) {
   const indice = Number(evento.key) - 1;
@@ -101,19 +155,74 @@ canvas.addEventListener("click", function () {
 
   partida.ouro -= TIPOS_DE_TORRE[torreEscolhida].custo;
   torres.push(criarTorre(torreEscolhida, tileApontado.coluna, tileApontado.linha));
+  torresConstruidas++;
 });
 
-function atualizarPainel() {
-  const escolhida = TIPOS_DE_TORRE[torreEscolhida];
-  const fase = partida.resultado
-    ? (partida.resultado === "vitoria" ? "VITORIA" : "DERROTA")
-    : partida.estado === "preparando"
-      ? `proxima orda em ${Math.ceil(partida.tempo)}s`
-      : `orda ${partida.onda} em andamento`;
+function descreverTorre(tipo) {
+  if (tipo.cura) {
+    return [
+      `Cura ${tipo.cura} a cada ${tipo.recargaDaCura}s`,
+      `Alcance ${tipo.alcance} · Lentidão ${Math.round((1 - tipo.lentidao) * 100)}%`,
+    ];
+  }
 
-  painel.textContent =
-    `ouro ${partida.ouro}   vidas ${partida.vidas}   orda ${partida.onda}/${ORDAS.length}   ${fase}` +
-    `   |   [1]Arqueiro 50  [2]Canhao 120  [3]Monge 90   selecionada: ${escolhida.nome}`;
+  return [
+    `Dano ${tipo.dano}${tipo.area ? ` em área ${tipo.area}` : ""} · Recarga ${tipo.cadencia}s`,
+    `Alcance ${tipo.alcance} · ${tipo.antiAereo ? "atinge voadores" : "não atinge voadores"}`,
+  ];
+}
+
+function textoDaSituacao() {
+  if (partida.resultado) {
+    return partida.resultado === "vitoria" ? "Vitória!" : "Derrota";
+  }
+  if (partida.estado === "cartas") {
+    return "Escolha uma carta";
+  }
+  if (partida.estado === "preparando") {
+    return `Próxima orda em ${Math.ceil(partida.tempo)}s`;
+  }
+  return `Orda ${partida.onda} em andamento`;
+}
+
+function atualizarHud() {
+  textoOuro.textContent = `Ouro ${partida.ouro}`;
+  textoVidas.textContent = `Vidas ${partida.vidas}`;
+  textoOnda.textContent = `Orda ${partida.onda}/${ORDAS.length}`;
+  textoSituacao.textContent = textoDaSituacao();
+  botaoProxima.disabled = partida.estado !== "preparando" || partida.resultado !== null;
+
+  NOMES_DE_TORRE.forEach(function (nome, indice) {
+    const tipo = TIPOS_DE_TORRE[nome];
+    const partes = botoesDaLoja[nome];
+    const [linha1, linha2] = descreverTorre(tipo);
+
+    partes.titulo.textContent = `${indice + 1} · ${tipo.nome} — ${tipo.custo} de ouro`;
+    partes.linha1.textContent = linha1;
+    partes.linha2.textContent = linha2;
+    partes.botao.classList.toggle("escolhida", nome === torreEscolhida);
+    partes.botao.classList.toggle("caro", partida.ouro < tipo.custo);
+  });
+}
+
+function desenharAlcance() {
+  if (!tileApontado) {
+    return;
+  }
+
+  const existente = torres.find((torre) => torre.coluna === tileApontado.coluna && torre.linha === tileApontado.linha);
+
+  if (existente) {
+    drawCircle(existente.x, existente.y, TIPOS_DE_TORRE[existente.tipo].alcance, [1, 1, 1, 0.9]);
+    return;
+  }
+
+  if (!podeConstruir(tileApontado.coluna, tileApontado.linha)) {
+    return;
+  }
+
+  const cor = podeColocar(tileApontado) ? [0.4, 1, 0.4, 0.9] : [1, 0.4, 0.4, 0.9];
+  drawCircle(tileApontado.coluna * 64 + 32, tileApontado.linha * 64 + 32, TIPOS_DE_TORRE[torreEscolhida].alcance, cor);
 }
 
 let tempo = 0;
@@ -121,6 +230,9 @@ let ultimoTempo = 0;
 
 function atualizar(dt) {
   if (partida.resultado) {
+    if (telaDeFim.hidden) {
+      mostrarFim();
+    }
     return;
   }
 
@@ -151,7 +263,7 @@ function render(tempoAtual) {
   ultimoTempo = tempoAtual;
 
   atualizar(dt);
-  atualizarPainel();
+  atualizarHud();
 
   gl.viewport(0, 0, canvas.width, canvas.height);
   gl.clearColor(0.35, 0.5, 0.75, 1);
@@ -161,6 +273,7 @@ function render(tempoAtual) {
   desenharInimigos(drawSprite, drawRect, texturas, inimigos, tempo);
   desenharTorres(drawSprite, drawRect, texturas, torres, tempo);
   desenharProjeteis(drawSprite, texturas, projeteis);
+  desenharAlcance();
   desenharDestaque(drawRect, tileApontado, podeColocar(tileApontado));
 
   requestAnimationFrame(render);

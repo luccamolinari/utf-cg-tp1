@@ -1,7 +1,7 @@
 import { criarInimigo } from "./inimigos.js";
 
 export const VIDAS_INICIAIS = 20;
-export const OURO_INICIAL = 250;
+export const OURO_INICIAL = 260;
 export const PAUSA_ENTRE_ORDAS = 12;
 
 export const ORDAS = [
@@ -16,6 +16,12 @@ export const ORDAS = [
   { grupos: [["turtle", 5, 5], ["gnoll", 12, 0.9], ["torchGoblin", 8, 1.4]], bonus: 100 },
   { grupos: [["minotaur", 1, 1], ["gnoll", 12, 1], ["turtle", 6, 4], ["torchGoblin", 10, 1.2]], bonus: 175 },
 ];
+
+export function pularEspera(partida) {
+  if (partida.estado === "preparando") {
+    partida.tempo = 0;
+  }
+}
 
 export function retomarDepoisDaCarta(partida) {
   partida.estado = "preparando";

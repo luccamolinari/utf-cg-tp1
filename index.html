@@ -7,14 +7,27 @@
 </head>
 <body>
   <div id="jogo">
+    <div id="topo">
+      <span id="ouro"></span>
+      <span id="vidas"></span>
+      <span id="onda"></span>
+      <span id="situacao"></span>
+      <button id="proxima">Próxima orda</button>
+    </div>
     <div id="tabuleiro">
       <canvas id="game-canvas"></canvas>
       <div id="cartas" hidden>
         <p id="cartas-titulo"></p>
         <div id="cartas-lista"></div>
       </div>
+      <div id="fim" hidden>
+        <img id="fim-retrato" alt="">
+        <h1 id="fim-titulo"></h1>
+        <p id="fim-texto"></p>
+        <button id="reiniciar">Jogar de novo</button>
+      </div>
     </div>
-    <p id="painel"></p>
+    <div id="loja"></div>
   </div>
   <script type="module" src="js/main.js"></script>
 </body>

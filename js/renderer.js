@@ -185,3 +185,58 @@ export function createRectRenderer(gl, largura, altura) {
         gl.drawArrays(gl.TRIANGLES, 0, 6);
     };
 }
+
+const CIRCLE_VERT = `#version 300 es
+layout(location = 0) in vec2 aPosition;
+uniform vec2 uResolution;
+uniform vec2 uOffset;
+uniform vec2 uScale;
+out vec2 vLocal;
+
+void main() {
+  vec2 pos = aPosition * uScale + uOffset;
+  vec2 clipSpace = (pos / uResolution) * 2.0 - 1.0;
+  gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+  vLocal = aPosition * 2.0 - 1.0;
+}
+`;
+
+const CIRCLE_FRAG = `#version 300 es
+precision mediump float;
+uniform vec4 uColor;
+in vec2 vLocal;
+out vec4 fragColor;
+
+void main() {
+  float distancia = length(vLocal);
+
+  if (distancia > 1.0) {
+    discard;
+  }
+
+  float intensidade = distancia > 0.96 ? 1.0 : 0.22;
+  fragColor = vec4(uColor.rgb, uColor.a * intensidade);
+}
+`;
+
+export function createCircleRenderer(gl, largura, altura) {
+    const program = createProgram(gl, CIRCLE_VERT, CIRCLE_FRAG);
+    const vao = createQuadVAO(gl);
+
+    const uResolution = gl.getUniformLocation(program, "uResolution");
+    const uOffset = gl.getUniformLocation(program, "uOffset");
+    const uScale = gl.getUniformLocation(program, "uScale");
+    const uColor = gl.getUniformLocation(program, "uColor");
+
+    return function drawCircle(x, y, raio, cor) {
+        gl.useProgram(program);
+        gl.bindVertexArray(vao);
+
+        gl.uniform2f(uResolution, largura, altura);
+        gl.uniform2f(uOffset, x - raio, y - raio);
+        gl.uniform2f(uScale, raio * 2, raio * 2);
+        gl.uniform4f(uColor, cor[0], cor[1], cor[2], cor[3]);
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+    };
+}
