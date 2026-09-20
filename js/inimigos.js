@@ -164,17 +164,17 @@ export function atualizarInimigos(lista, torres, dt) {
 
 export function removerMortos(lista) {
   let ouro = 0;
-  let abatidos = 0;
+  const tipos = [];
 
   for (let i = lista.length - 1; i >= 0; i--) {
     if (lista[i].vida <= 0) {
       ouro += TIPOS[lista[i].tipo].ouro;
-      abatidos++;
+      tipos.push(lista[i].tipo);
       lista.splice(i, 1);
     }
   }
 
-  return { ouro, abatidos };
+  return { ouro, abatidos: tipos.length, tipos };
 }
 
 export function golpear(lista, x, y) {

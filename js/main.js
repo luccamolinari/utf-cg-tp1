@@ -5,6 +5,7 @@ import { FOLHAS, atualizarInimigos, desenharInimigos, removerMortos, golpear } f
 import { FOLHAS as FOLHAS_DE_TORRE, TIPOS as TIPOS_DE_TORRE, criarTorre, torreEm, atualizarTorres, atualizarProjeteis, removerTorresDestruidas, desenharTorres, desenharProjeteis } from "./torres.js";
 import { ORDAS, ORCAMENTO_DE_CLIQUES, criarPartida, atualizarPartida, retomarDepoisDaCarta, pularEspera, pontuacao } from "./ondas.js";
 import { sortearCartas, aplicarCarta } from "./cartas.js";
+import { prepararSons, definirVolume, tocar, ambiente, tocarMusica } from "./audio.js";
 
 const canvas = document.getElementById("game-canvas");
 canvas.width = LARGURA;
@@ -25,6 +26,24 @@ const imagens = await loadImages({
   ...FOLHAS,
   ...FOLHAS_DE_TORRE,
 });
+
+const SOM_DE_MORTE = {
+  spearGoblin: "morteGoblin",
+  torchGoblin: "morteGoblin",
+  gnoll: "morteGoblin",
+  giantBat: "morteMorcego",
+  turtle: "morteTartaruga",
+  minotaur: "morteMinotauro",
+};
+
+const AMBIENTE_DO_TIPO = {
+  spearGoblin: "tropas",
+  torchGoblin: "tropas",
+  gnoll: "tropas",
+  giantBat: "morcegos",
+  turtle: "tartarugas",
+  minotaur: "minotauro",
+};
 
 const texturas = {};
 for (const nome of Object.keys(imagens)) {
@@ -48,6 +67,23 @@ const textoCliques = document.getElementById("cliques");
 const textoSituacao = document.getElementById("situacao");
 const botaoProxima = document.getElementById("proxima");
 const loja = document.getElementById("loja");
+const controleDeVolume = document.getElementById("volume");
+
+prepararSons();
+definirVolume(controleDeVolume.value / 100);
+
+controleDeVolume.addEventListener("input", function () {
+  definirVolume(controleDeVolume.value / 100);
+});
+
+function liberarSom() {
+  tocarMusica();
+  window.removeEventListener("pointerdown", liberarSom);
+  window.removeEventListener("keydown", liberarSom);
+}
+
+window.addEventListener("pointerdown", liberarSom);
+window.addEventListener("keydown", liberarSom);
 const telaDeFim = document.getElementById("fim");
 const retratoDoFim = document.getElementById("fim-retrato");
 const tituloDoFim = document.getElementById("fim-titulo");
@@ -86,6 +122,8 @@ function mostrarCartas() {
   tituloDasCartas.textContent = `Orda ${partida.onda} vencida — escolha uma melhoria`;
   listaDeCartas.textContent = "";
 
+  tocar("cartasNaTela");
+
   for (const carta of sortearCartas(3)) {
     const elemento = document.createElement("div");
     elemento.className = "carta";
@@ -94,6 +132,7 @@ function mostrarCartas() {
     elemento.querySelector("span").textContent = carta.texto;
 
     elemento.addEventListener("click", function () {
+      tocar("cartaEscolhida");
       aplicarCarta(carta, partida, torres);
       telaDeCartas.hidden = true;
       retomarDepoisDaCarta(partida);
@@ -176,6 +215,7 @@ canvas.addEventListener("click", function (evento) {
 
   if (partida.cliques > 0 && golpear(inimigos, x, y)) {
     partida.cliques--;
+    tocar("vergonha");
     mostrarVergonha(evento);
     return;
   }
@@ -187,6 +227,7 @@ canvas.addEventListener("click", function (evento) {
   partida.ouro -= TIPOS_DE_TORRE[torreEscolhida].custo;
   torres.push(criarTorre(torreEscolhida, tileApontado.coluna, tileApontado.linha));
   partida.torresConstruidas++;
+  tocar(torreEscolhida === "canhao" ? "construirCanhao" : "construirArqueiro");
 });
 
 function descreverTorre(tipo) {
@@ -261,6 +302,14 @@ function desenharAlcance() {
 let tempo = 0;
 let ultimoTempo = 0;
 
+function atualizarAmbiente() {
+  const vivos = new Set(inimigos.map((inimigo) => AMBIENTE_DO_TIPO[inimigo.tipo]));
+
+  for (const nome of ["tropas", "morcegos", "tartarugas", "minotauro"]) {
+    ambiente(nome, vivos.has(nome));
+  }
+}
+
 function atualizar(dt) {
   if (partida.resultado) {
     if (telaDeFim.hidden) {
@@ -278,15 +327,34 @@ function atualizar(dt) {
 
   tempo += dt;
 
-  atualizarTorres(torres, inimigos, projeteis, dt);
-  atualizarProjeteis(projeteis, inimigos, torres, dt);
+  atualizarTorres(torres, inimigos, projeteis, dt, tocar);
+  atualizarProjeteis(projeteis, inimigos, torres, dt, tocar);
   const mortos = removerMortos(inimigos);
   partida.ouro += mortos.ouro;
   partida.abates += mortos.abatidos;
 
+  for (const tipo of new Set(mortos.tipos)) {
+    tocar(SOM_DE_MORTE[tipo]);
+  }
+
+  atualizarAmbiente();
+
   const chegaram = atualizarInimigos(inimigos, torres, dt);
-  removerTorresDestruidas(torres);
+
+  if (chegaram > 0) {
+    tocar("perdeuVida");
+  }
+
+  if (removerTorresDestruidas(torres) > 0) {
+    tocar("torreDestruida");
+  }
+
+  const estadoAnterior = partida.estado;
   atualizarPartida(partida, inimigos, chegaram, dt);
+
+  if (estadoAnterior !== "emOrda" && partida.estado === "emOrda") {
+    tocar("comecouOrda");
+  }
 }
 
 function render(tempoAtual) {

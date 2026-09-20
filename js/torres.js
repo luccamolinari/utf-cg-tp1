@@ -123,7 +123,7 @@ function alvoDaTorre(torre, tipo, inimigos) {
   return melhor;
 }
 
-function curarVizinhas(monge, tipo, torres, dt) {
+function curarVizinhas(monge, tipo, torres, dt, aoEvento) {
   monge.recarga -= dt;
   monge.tempoDeTiro = Math.max(0, monge.tempoDeTiro - dt);
 
@@ -150,10 +150,11 @@ function curarVizinhas(monge, tipo, torres, dt) {
   if (curou) {
     monge.recarga = tipo.recargaDaCura;
     monge.tempoDeTiro = 1.3;
+    aoEvento("monge");
   }
 }
 
-export function atualizarTorres(torres, inimigos, projeteis, dt) {
+export function atualizarTorres(torres, inimigos, projeteis, dt, aoEvento = () => {}) {
   for (const inimigo of inimigos) {
     inimigo.lentidao = 1;
   }
@@ -175,7 +176,7 @@ export function atualizarTorres(torres, inimigos, projeteis, dt) {
         }
       }
 
-      curarVizinhas(torre, tipo, torres, dt);
+      curarVizinhas(torre, tipo, torres, dt, aoEvento);
       continue;
     }
 
@@ -193,6 +194,7 @@ export function atualizarTorres(torres, inimigos, projeteis, dt) {
     if (torre.recarga <= 0) {
       torre.recarga = tipo.cadencia;
       torre.tempoDeTiro = 0.35;
+      aoEvento(tipo.projetil === "flecha" ? "arqueiroAtira" : "canhaoAtira");
 
       projeteis.push({
         tipo: tipo.projetil,
@@ -245,7 +247,7 @@ function refletir(projetil, inimigo, projeteis) {
   });
 }
 
-export function atualizarProjeteis(projeteis, inimigos, torres, dt) {
+export function atualizarProjeteis(projeteis, inimigos, torres, dt, aoEvento = () => {}) {
   for (let i = projeteis.length - 1; i >= 0; i--) {
     const projetil = projeteis[i];
 
@@ -279,8 +281,13 @@ export function atualizarProjeteis(projeteis, inimigos, torres, dt) {
 
     if (projetil.tipo === "flecha" && INIMIGOS[alvo.tipo].refleteFlecha) {
       refletir(projetil, alvo, projeteis);
+      aoEvento("flechaRefletida");
     } else {
       aplicarDano(projetil, alvo, inimigos);
+
+      if (projetil.tipo === "flecha") {
+        aoEvento("flechaAcerta");
+      }
     }
   }
 }
@@ -312,11 +319,16 @@ function direcaoDoCanhao(dx, dy) {
 }
 
 export function removerTorresDestruidas(torres) {
+  let destruidas = 0;
+
   for (let i = torres.length - 1; i >= 0; i--) {
     if (torres[i].vida <= 0) {
       torres.splice(i, 1);
+      destruidas++;
     }
   }
+
+  return destruidas;
 }
 
 export function desenharTorres(drawSprite, drawRect, texturas, torres, tempo) {

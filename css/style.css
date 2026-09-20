@@ -183,6 +183,18 @@ html, body {
   flex: 1;
 }
 
+#controle-volume {
+  align-items: center;
+  color: #c8b98f;
+  display: flex;
+  font-size: 13px;
+  gap: 6px;
+}
+
+#volume {
+  width: 90px;
+}
+
 #proxima {
   background: #4f7a3a;
   border: 2px solid #2f4a22;
