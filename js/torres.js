@@ -281,12 +281,14 @@ export function atualizarProjeteis(projeteis, inimigos, torres, dt, aoEvento = (
 
     if (projetil.tipo === "flecha" && INIMIGOS[alvo.tipo].refleteFlecha) {
       refletir(projetil, alvo, projeteis);
-      aoEvento("flechaRefletida");
+      aoEvento("flechaRefletida", alvo.x, alvo.y - 24);
     } else {
       aplicarDano(projetil, alvo, inimigos);
 
-      if (projetil.tipo === "flecha") {
-        aoEvento("flechaAcerta");
+      if (projetil.area) {
+        aoEvento("canhaoAcerta", alvo.x, alvo.y - 20);
+      } else {
+        aoEvento("flechaAcerta", alvo.x, alvo.y - 24);
       }
     }
   }

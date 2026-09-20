@@ -6,6 +6,7 @@ import { FOLHAS as FOLHAS_DE_TORRE, TIPOS as TIPOS_DE_TORRE, criarTorre, torreEm
 import { ORDAS, ORCAMENTO_DE_CLIQUES, criarPartida, atualizarPartida, retomarDepoisDaCarta, pularEspera, pontuacao } from "./ondas.js";
 import { sortearCartas, aplicarCarta } from "./cartas.js";
 import { prepararSons, definirVolume, tocar, ambiente, tocarMusica } from "./audio.js";
+import { explosao, faisca, poeira, fumaca, atualizarParticulas, desenharParticulas } from "./particulas.js";
 
 const canvas = document.getElementById("game-canvas");
 canvas.width = LARGURA;
@@ -228,6 +229,7 @@ canvas.addEventListener("click", function (evento) {
   torres.push(criarTorre(torreEscolhida, tileApontado.coluna, tileApontado.linha));
   partida.torresConstruidas++;
   tocar(torreEscolhida === "canhao" ? "construirCanhao" : "construirArqueiro");
+  poeira(tileApontado.coluna * 64 + 32, tileApontado.linha * 64 + 40);
 });
 
 function descreverTorre(tipo) {
@@ -299,8 +301,22 @@ function desenharAlcance() {
   drawCircle(tileApontado.coluna * 64 + 32, tileApontado.linha * 64 + 32, TIPOS_DE_TORRE[torreEscolhida].alcance, cor);
 }
 
+const PASSO_MAXIMO = 0.1;
+
 let tempo = 0;
 let ultimoTempo = 0;
+
+function aoEvento(nome, x, y) {
+  tocar(nome);
+
+  if (nome === "canhaoAcerta") {
+    explosao(x, y);
+  }
+
+  if (nome === "flechaRefletida") {
+    faisca(x, y);
+  }
+}
 
 function atualizarAmbiente() {
   const vivos = new Set(inimigos.map((inimigo) => AMBIENTE_DO_TIPO[inimigo.tipo]));
@@ -327,17 +343,23 @@ function atualizar(dt) {
 
   tempo += dt;
 
-  atualizarTorres(torres, inimigos, projeteis, dt, tocar);
-  atualizarProjeteis(projeteis, inimigos, torres, dt, tocar);
+  atualizarTorres(torres, inimigos, projeteis, dt, aoEvento);
+  atualizarProjeteis(projeteis, inimigos, torres, dt, aoEvento);
   const mortos = removerMortos(inimigos);
   partida.ouro += mortos.ouro;
   partida.abates += mortos.abatidos;
 
-  for (const tipo of new Set(mortos.tipos)) {
+  for (const tipo of new Set(mortos.mortos.map((morto) => morto.tipo))) {
     tocar(SOM_DE_MORTE[tipo]);
   }
 
+  for (const morto of mortos.mortos) {
+    fumaca(morto.x, morto.y - 24);
+  }
+
   atualizarAmbiente();
+
+  atualizarParticulas(dt);
 
   const chegaram = atualizarInimigos(inimigos, torres, dt);
 
@@ -362,7 +384,7 @@ function render(tempoAtual) {
     ultimoTempo = tempoAtual;
   }
 
-  const dt = (tempoAtual - ultimoTempo) / 1000;
+  const dt = Math.min(PASSO_MAXIMO, (tempoAtual - ultimoTempo) / 1000);
   ultimoTempo = tempoAtual;
 
   atualizar(dt);
@@ -376,6 +398,7 @@ function render(tempoAtual) {
   desenharInimigos(drawSprite, drawRect, texturas, inimigos, tempo);
   desenharTorres(drawSprite, drawRect, texturas, torres, tempo);
   desenharProjeteis(drawSprite, texturas, projeteis);
+  desenharParticulas(drawRect);
   desenharAlcance();
   desenharDestaque(drawRect, tileApontado, podeColocar(tileApontado));
 
