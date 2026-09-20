@@ -4,6 +4,7 @@ export const VIDAS_INICIAIS = 20;
 export const OURO_INICIAL = 260;
 export const PAUSA_ENTRE_ORDAS = 12;
 export const ORCAMENTO_DE_CLIQUES = 50;
+const ATRASO_DA_PRIMEIRA = 1.8;
 const PESO_DAS_TORRES = 20;
 
 export const ORDAS = [
@@ -58,7 +59,7 @@ function montarFila(onda) {
 
   for (const [tipo, quantidade, intervalo] of onda.grupos) {
     for (let i = 0; i < quantidade; i++) {
-      fila.push({ tipo, tempo: i * intervalo });
+      fila.push({ tipo, tempo: ATRASO_DA_PRIMEIRA + i * intervalo });
     }
   }
 

@@ -1,26 +1,28 @@
 html, body {
-  margin: 0;
-  height: 100%;
   background: #111;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
 }
 
 #jogo {
   align-items: center;
   display: flex;
   flex-direction: column;
-  max-width: 100%;
+  height: 100%;
+  justify-content: center;
+  width: 100%;
 }
 
 
 #game-canvas {
   background: #000;
   border: 2px solid #444;
+  box-sizing: border-box;
+  display: block;
+  height: 100%;
   image-rendering: pixelated;
-  max-width: 100%;
-  max-height: calc(100vh - 150px);
+  width: 100%;
 }
 
 #tabuleiro {
@@ -41,8 +43,115 @@ html, body {
 }
 
 #cartas[hidden],
-#fim[hidden] {
+#fim[hidden],
+#menu[hidden],
+#menu-botoes[hidden],
+.painel-menu[hidden] {
   display: none;
+}
+
+#menu {
+  align-items: flex-end;
+  background-image: url("../assets/sprites/capa.png");
+  background-position: center;
+  background-size: cover;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  left: 0;
+  padding-right: 7%;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+#menu-botoes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#menu-botoes button,
+.painel-menu .voltar {
+  background: #4f7a3a;
+  border: 3px solid #2f4a22;
+  color: #f0e3c0;
+  cursor: pointer;
+  font-family: monospace;
+  font-size: 18px;
+  padding: 10px 44px;
+}
+
+#menu-botoes button:hover,
+.painel-menu .voltar:hover {
+  background: #628f49;
+}
+
+.painel-menu {
+  align-items: center;
+  background: rgba(240, 230, 205, 0.95);
+  border: 3px solid #8a6a3c;
+  color: #3a2c18;
+  display: flex;
+  flex-direction: column;
+  font-family: monospace;
+  gap: 8px;
+  max-width: 44%;
+  padding: 18px 24px;
+}
+
+.painel-menu h2 {
+  font-size: 15px;
+  margin: 10px 0 0 0;
+}
+
+.painel-menu p {
+  font-size: 13px;
+  margin: 0;
+  text-align: center;
+}
+
+.painel-menu .voltar {
+  margin-top: 16px;
+  padding: 6px 28px;
+}
+
+.linha-idioma {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.idioma,
+#menu-tela-cheia {
+  background: #cdb886;
+  border: 2px solid #8a6a3c;
+  color: #3a2c18;
+  cursor: pointer;
+  font-family: monospace;
+  font-size: 13px;
+  padding: 4px 12px;
+}
+
+#menu-tela-cheia {
+  margin-top: 6px;
+  padding: 6px 20px;
+}
+
+.idioma:hover,
+#menu-tela-cheia:hover {
+  background: #e3d1a4;
+}
+
+.idioma.escolhido {
+  background: #fff3cf;
+  border-color: #d8a24a;
+}
+
+#aviso-idioma {
+  color: #6b4c2a;
+  min-height: 18px;
 }
 
 #fim {
@@ -172,15 +281,17 @@ html, body {
   color: #f0e3c0;
   display: flex;
   font-family: monospace;
-  font-size: 16px;
-  gap: 24px;
-  padding: 8px 14px;
-  width: 100%;
+  font-size: 15px;
+  gap: 14px;
+  padding: 8px 12px;
+  white-space: nowrap;
 }
 
 #situacao {
   color: #c8b98f;
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 #controle-volume {
@@ -220,7 +331,6 @@ html, body {
   display: flex;
   gap: 10px;
   padding: 8px;
-  width: 100%;
 }
 
 .torre {

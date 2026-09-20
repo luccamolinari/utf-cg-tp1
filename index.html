@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>tower defense</title>
+  <title>Defesa dos Guris</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
       <span id="pontos"></span>
       <span id="cliques"></span>
       <span id="situacao"></span>
-      <button id="proxima">Próxima orda</button>
+      <button id="proxima">Próxima horda</button>
       <label id="controle-volume">Som <input type="range" id="volume" min="0" max="100" value="70"></label>
     </div>
     <div id="tabuleiro">
@@ -23,6 +23,45 @@
         <p id="cartas-titulo"></p>
         <div id="cartas-lista"></div>
       </div>
+      <div id="menu">
+        <div id="menu-botoes">
+          <button id="menu-jogar">Jogar</button>
+          <button id="menu-opcoes">Opções</button>
+          <button id="menu-creditos">Créditos</button>
+        </div>
+
+        <div id="painel-opcoes" class="painel-menu" hidden>
+          <label>Volume <input type="range" id="volume-menu" min="0" max="100" value="70"></label>
+          <div class="linha-idioma">
+            <span>Idioma</span>
+            <button id="idioma-pt" class="idioma escolhido">Português</button>
+            <button id="idioma-ru" class="idioma">Russo</button>
+          </div>
+          <p id="aviso-idioma"></p>
+          <button id="menu-tela-cheia">Tela cheia</button>
+          <button class="voltar">Voltar</button>
+        </div>
+
+        <div id="painel-creditos" class="painel-menu" hidden>
+          <h2>Desenvolvimento</h2>
+          <p>Nicolas Rodrigues de Vargas — contato.nicodevargas@gmail.com</p>
+          <p>Lucca Molinari — luccamolinaari@gmail.com</p>
+
+          <h2>Música</h2>
+          <p>Música de vitória — Lucca Molinari</p>
+          <p>Música de derrota — Nicolas Rodrigues de Vargas</p>
+          <p>Música de fundo — Awesomeness, do OpenGameArt</p>
+
+          <h2>Arte</h2>
+          <p>Tiny Swords, do Pixel Frog</p>
+
+          <h2>Efeitos sonoros</h2>
+          <p>Pixabay — lista completa no README do repositório</p>
+
+          <button class="voltar">Voltar</button>
+        </div>
+      </div>
+
       <div id="fim" hidden>
         <img id="fim-retrato" alt="">
         <h1 id="fim-titulo"></h1>

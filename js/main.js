@@ -69,22 +69,96 @@ const textoSituacao = document.getElementById("situacao");
 const botaoProxima = document.getElementById("proxima");
 const loja = document.getElementById("loja");
 const controleDeVolume = document.getElementById("volume");
+const controleDeVolumeDoMenu = document.getElementById("volume-menu");
+const menu = document.getElementById("menu");
+const tabuleiro = document.getElementById("tabuleiro");
+const topo = document.getElementById("topo");
+const jogo = document.getElementById("jogo");
+
+function ajustarTabuleiro() {
+  const sobra = jogo.clientHeight - topo.offsetHeight - loja.offsetHeight;
+  const cabe = Math.min(jogo.clientWidth, sobra * 5 / 3);
+  const largura = Math.floor(cabe / 5) * 5;
+
+  tabuleiro.style.width = `${largura}px`;
+  tabuleiro.style.height = `${largura * 3 / 5}px`;
+  topo.style.width = `${largura}px`;
+  loja.style.width = `${largura}px`;
+}
+
+const observador = new ResizeObserver(ajustarTabuleiro);
+observador.observe(jogo);
+observador.observe(loja);
+const painelDeOpcoes = document.getElementById("painel-opcoes");
+const painelDeCreditos = document.getElementById("painel-creditos");
+const avisoDeIdioma = document.getElementById("aviso-idioma");
+const botoesDoMenu = document.getElementById("menu-botoes");
+
+let noMenu = true;
+
+function abrirPainel(painel) {
+  botoesDoMenu.hidden = painel !== null;
+  painelDeOpcoes.hidden = painel !== painelDeOpcoes;
+  painelDeCreditos.hidden = painel !== painelDeCreditos;
+}
+
+document.getElementById("menu-jogar").addEventListener("click", function () {
+  menu.hidden = true;
+  noMenu = false;
+  tocarMusica();
+});
+
+document.getElementById("menu-opcoes").addEventListener("click", function () {
+  abrirPainel(painelDeOpcoes);
+});
+
+document.getElementById("menu-creditos").addEventListener("click", function () {
+  abrirPainel(painelDeCreditos);
+});
+
+document.getElementById("menu-tela-cheia").addEventListener("click", function () {
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    document.documentElement.requestFullscreen();
+  }
+});
+
+for (const botao of document.querySelectorAll(".painel-menu .voltar")) {
+  botao.addEventListener("click", function () {
+    abrirPainel(null);
+  });
+}
+
+const botaoPortugues = document.getElementById("idioma-pt");
+const botaoRusso = document.getElementById("idioma-ru");
+
+botaoRusso.addEventListener("click", function () {
+  botaoPortugues.classList.remove("escolhido");
+  botaoRusso.classList.add("escolhido");
+  avisoDeIdioma.textContent = "Botão extremamente útil em manutenção. хорошего дня(Tenha um ótimo dia).";
+});
+
+botaoPortugues.addEventListener("click", function () {
+  botaoRusso.classList.remove("escolhido");
+  botaoPortugues.classList.add("escolhido");
+  avisoDeIdioma.textContent = "";
+});
 
 prepararSons();
 definirVolume(controleDeVolume.value / 100);
 
 controleDeVolume.addEventListener("input", function () {
+  controleDeVolumeDoMenu.value = controleDeVolume.value;
   definirVolume(controleDeVolume.value / 100);
 });
 
-function liberarSom() {
-  tocarMusica();
-  window.removeEventListener("pointerdown", liberarSom);
-  window.removeEventListener("keydown", liberarSom);
-}
+controleDeVolumeDoMenu.addEventListener("input", function () {
+  controleDeVolume.value = controleDeVolumeDoMenu.value;
+  definirVolume(controleDeVolumeDoMenu.value / 100);
+});
 
-window.addEventListener("pointerdown", liberarSom);
-window.addEventListener("keydown", liberarSom);
+
 const telaDeFim = document.getElementById("fim");
 const retratoDoFim = document.getElementById("fim-retrato");
 const tituloDoFim = document.getElementById("fim-titulo");
@@ -105,8 +179,8 @@ function mostrarFim() {
   const construidas = `${total} ${total === 1 ? "torre construída" : "torres construídas"}`;
 
   textoDoFim.textContent = venceu
-    ? `${pontuacao(partida)} pontos — o castelo resistiu às ${ORDAS.length} ordas com ${partida.vidas} vidas sobrando, ${partida.abates} inimigos abatidos e ${construidas}.`
-    : `${pontuacao(partida)} pontos — o castelo caiu na orda ${partida.onda} de ${ORDAS.length}, com ${partida.abates} inimigos abatidos e ${construidas}.`;
+    ? `${pontuacao(partida)} pontos — o castelo resistiu às ${ORDAS.length} hordas com ${partida.vidas} vidas sobrando, ${partida.abates} inimigos abatidos e ${construidas}.`
+    : `${pontuacao(partida)} pontos — o castelo caiu na horda ${partida.onda} de ${ORDAS.length}, com ${partida.abates} inimigos abatidos e ${construidas}.`;
 
   telaDeFim.classList.toggle("derrota", !venceu);
   telaDeFim.hidden = false;
@@ -120,7 +194,7 @@ const tituloDasCartas = document.getElementById("cartas-titulo");
 const listaDeCartas = document.getElementById("cartas-lista");
 
 function mostrarCartas() {
-  tituloDasCartas.textContent = `Orda ${partida.onda} vencida — escolha uma melhoria`;
+  tituloDasCartas.textContent = `Horda ${partida.onda} vencida — escolha uma melhoria`;
   listaDeCartas.textContent = "";
 
   tocar("cartasNaTela");
@@ -221,15 +295,17 @@ canvas.addEventListener("click", function (evento) {
     return;
   }
 
-  if (!podeColocar(tileApontado)) {
+  const tile = tileNaPosicao(x, y);
+
+  if (!podeColocar(tile)) {
     return;
   }
 
   partida.ouro -= TIPOS_DE_TORRE[torreEscolhida].custo;
-  torres.push(criarTorre(torreEscolhida, tileApontado.coluna, tileApontado.linha));
+  torres.push(criarTorre(torreEscolhida, tile.coluna, tile.linha));
   partida.torresConstruidas++;
   tocar(torreEscolhida === "canhao" ? "construirCanhao" : "construirArqueiro");
-  poeira(tileApontado.coluna * 64 + 32, tileApontado.linha * 64 + 40);
+  poeira(tile.coluna * 64 + 32, tile.linha * 64 + 40);
 });
 
 function descreverTorre(tipo) {
@@ -254,15 +330,15 @@ function textoDaSituacao() {
     return "Escolha uma carta";
   }
   if (partida.estado === "preparando") {
-    return `Próxima orda em ${Math.ceil(partida.tempo)}s`;
+    return `Próxima horda em ${Math.ceil(partida.tempo)}s`;
   }
-  return `Orda ${partida.onda} em andamento`;
+  return `Horda ${partida.onda} em andamento`;
 }
 
 function atualizarHud() {
   textoOuro.textContent = `Ouro ${partida.ouro}`;
   textoVidas.textContent = `Vidas ${partida.vidas}`;
-  textoOnda.textContent = `Orda ${partida.onda}/${ORDAS.length}`;
+  textoOnda.textContent = `Horda ${partida.onda}/${ORDAS.length}`;
   textoPontos.textContent = `Pontos ${pontuacao(partida)}`;
   textoCliques.textContent = `Cliques ${partida.cliques}/${ORCAMENTO_DE_CLIQUES}`;
   textoSituacao.textContent = textoDaSituacao();
@@ -327,6 +403,10 @@ function atualizarAmbiente() {
 }
 
 function atualizar(dt) {
+  if (noMenu) {
+    return;
+  }
+
   if (partida.resultado) {
     if (telaDeFim.hidden) {
       mostrarFim();
