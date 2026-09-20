@@ -3,6 +3,8 @@ import { criarInimigo } from "./inimigos.js";
 export const VIDAS_INICIAIS = 20;
 export const OURO_INICIAL = 260;
 export const PAUSA_ENTRE_ORDAS = 12;
+export const ORCAMENTO_DE_CLIQUES = 50;
+const PESO_DAS_TORRES = 20;
 
 export const ORDAS = [
   { grupos: [["spearGoblin", 8, 1]], bonus: 20 },
@@ -36,8 +38,19 @@ export function criarPartida() {
     fila: [],
     vidas: VIDAS_INICIAIS,
     ouro: OURO_INICIAL,
+    cliques: ORCAMENTO_DE_CLIQUES,
+    abates: 0,
+    torresConstruidas: 0,
     resultado: null,
   };
+}
+
+export function pontuacao(partida) {
+  const porCliques = 0.5 + 0.5 * (partida.cliques / ORCAMENTO_DE_CLIQUES);
+  const porVidas = 1 + partida.vidas / VIDAS_INICIAIS;
+  const porTorres = PESO_DAS_TORRES / (PESO_DAS_TORRES + partida.torresConstruidas);
+
+  return Math.round(partida.abates * 10 * porCliques * porVidas * porTorres);
 }
 
 function montarFila(onda) {

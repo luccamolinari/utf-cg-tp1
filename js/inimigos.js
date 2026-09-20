@@ -58,6 +58,8 @@ const ENTRADA = posicaoNoCaminho(0);
 const CASTELO = posicaoNoCaminho(COMPRIMENTO_DO_CAMINHO);
 const DISTANCIA_DE_ATAQUE = 34;
 export const DURACAO_DO_CASCO = 0.6;
+export const DANO_DO_CLIQUE = 10;
+const RAIO_DO_CLIQUE = 36;
 
 export function criarInimigo(nome) {
   return {
@@ -162,15 +164,38 @@ export function atualizarInimigos(lista, torres, dt) {
 
 export function removerMortos(lista) {
   let ouro = 0;
+  let abatidos = 0;
 
   for (let i = lista.length - 1; i >= 0; i--) {
     if (lista[i].vida <= 0) {
       ouro += TIPOS[lista[i].tipo].ouro;
+      abatidos++;
       lista.splice(i, 1);
     }
   }
 
-  return ouro;
+  return { ouro, abatidos };
+}
+
+export function golpear(lista, x, y) {
+  let alvo = null;
+  let menor = RAIO_DO_CLIQUE;
+
+  for (const inimigo of lista) {
+    const distancia = Math.hypot(inimigo.x - x, inimigo.y - 20 - y);
+
+    if (distancia < menor) {
+      menor = distancia;
+      alvo = inimigo;
+    }
+  }
+
+  if (!alvo) {
+    return false;
+  }
+
+  alvo.vida -= DANO_DO_CLIQUE;
+  return true;
 }
 
 function quadroAtual(recurso, tempo, fps) {

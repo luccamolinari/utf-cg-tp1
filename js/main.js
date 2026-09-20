@@ -1,9 +1,9 @@
 import { createGL, createRectRenderer, createSpriteRenderer, createCircleRenderer, createTexture } from "./renderer.js";
 import { loadImages } from "./assets.js";
 import { LARGURA, ALTURA, desenharMapa, desenharDestaque, tileNaPosicao, podeConstruir } from "./mapa.js";
-import { FOLHAS, atualizarInimigos, desenharInimigos, removerMortos } from "./inimigos.js";
+import { FOLHAS, atualizarInimigos, desenharInimigos, removerMortos, golpear } from "./inimigos.js";
 import { FOLHAS as FOLHAS_DE_TORRE, TIPOS as TIPOS_DE_TORRE, criarTorre, torreEm, atualizarTorres, atualizarProjeteis, removerTorresDestruidas, desenharTorres, desenharProjeteis } from "./torres.js";
-import { ORDAS, criarPartida, atualizarPartida, retomarDepoisDaCarta, pularEspera } from "./ondas.js";
+import { ORDAS, ORCAMENTO_DE_CLIQUES, criarPartida, atualizarPartida, retomarDepoisDaCarta, pularEspera, pontuacao } from "./ondas.js";
 import { sortearCartas, aplicarCarta } from "./cartas.js";
 
 const canvas = document.getElementById("game-canvas");
@@ -43,6 +43,8 @@ let tileApontado = null;
 const textoOuro = document.getElementById("ouro");
 const textoVidas = document.getElementById("vidas");
 const textoOnda = document.getElementById("onda");
+const textoPontos = document.getElementById("pontos");
+const textoCliques = document.getElementById("cliques");
 const textoSituacao = document.getElementById("situacao");
 const botaoProxima = document.getElementById("proxima");
 const loja = document.getElementById("loja");
@@ -51,7 +53,7 @@ const retratoDoFim = document.getElementById("fim-retrato");
 const tituloDoFim = document.getElementById("fim-titulo");
 const textoDoFim = document.getElementById("fim-texto");
 
-let torresConstruidas = 0;
+
 
 function mostrarFim() {
   const venceu = partida.resultado === "vitoria";
@@ -62,11 +64,12 @@ function mostrarFim() {
 
   tituloDoFim.textContent = venceu ? "Vitória!" : "Derrota";
 
-  const construidas = `${torresConstruidas} ${torresConstruidas === 1 ? "torre construída" : "torres construídas"}`;
+  const total = partida.torresConstruidas;
+  const construidas = `${total} ${total === 1 ? "torre construída" : "torres construídas"}`;
 
   textoDoFim.textContent = venceu
-    ? `O castelo resistiu às ${ORDAS.length} ordas com ${partida.vidas} vidas sobrando e ${construidas}.`
-    : `O castelo caiu na orda ${partida.onda} de ${ORDAS.length}, com ${construidas}.`;
+    ? `${pontuacao(partida)} pontos — o castelo resistiu às ${ORDAS.length} ordas com ${partida.vidas} vidas sobrando, ${partida.abates} inimigos abatidos e ${construidas}.`
+    : `${pontuacao(partida)} pontos — o castelo caiu na orda ${partida.onda} de ${ORDAS.length}, com ${partida.abates} inimigos abatidos e ${construidas}.`;
 
   telaDeFim.classList.toggle("derrota", !venceu);
   telaDeFim.hidden = false;
@@ -148,14 +151,42 @@ canvas.addEventListener("mouseleave", function () {
   tileApontado = null;
 });
 
-canvas.addEventListener("click", function () {
-  if (!podeColocar(tileApontado) || partida.resultado) {
+function mostrarVergonha(evento) {
+  const aviso = document.createElement("span");
+
+  aviso.className = "vergonha";
+  aviso.textContent = "CLICK OF SHAME!";
+  aviso.style.left = `${evento.clientX}px`;
+  aviso.style.top = `${evento.clientY}px`;
+  document.body.appendChild(aviso);
+
+  setTimeout(function () {
+    aviso.remove();
+  }, 700);
+}
+
+canvas.addEventListener("click", function (evento) {
+  if (partida.resultado || partida.estado === "cartas") {
+    return;
+  }
+
+  const area = canvas.getBoundingClientRect();
+  const x = (evento.clientX - area.left) * (canvas.width / area.width);
+  const y = (evento.clientY - area.top) * (canvas.height / area.height);
+
+  if (partida.cliques > 0 && golpear(inimigos, x, y)) {
+    partida.cliques--;
+    mostrarVergonha(evento);
+    return;
+  }
+
+  if (!podeColocar(tileApontado)) {
     return;
   }
 
   partida.ouro -= TIPOS_DE_TORRE[torreEscolhida].custo;
   torres.push(criarTorre(torreEscolhida, tileApontado.coluna, tileApontado.linha));
-  torresConstruidas++;
+  partida.torresConstruidas++;
 });
 
 function descreverTorre(tipo) {
@@ -189,6 +220,8 @@ function atualizarHud() {
   textoOuro.textContent = `Ouro ${partida.ouro}`;
   textoVidas.textContent = `Vidas ${partida.vidas}`;
   textoOnda.textContent = `Orda ${partida.onda}/${ORDAS.length}`;
+  textoPontos.textContent = `Pontos ${pontuacao(partida)}`;
+  textoCliques.textContent = `Cliques ${partida.cliques}/${ORCAMENTO_DE_CLIQUES}`;
   textoSituacao.textContent = textoDaSituacao();
   botaoProxima.disabled = partida.estado !== "preparando" || partida.resultado !== null;
 
@@ -247,7 +280,9 @@ function atualizar(dt) {
 
   atualizarTorres(torres, inimigos, projeteis, dt);
   atualizarProjeteis(projeteis, inimigos, torres, dt);
-  partida.ouro += removerMortos(inimigos);
+  const mortos = removerMortos(inimigos);
+  partida.ouro += mortos.ouro;
+  partida.abates += mortos.abatidos;
 
   const chegaram = atualizarInimigos(inimigos, torres, dt);
   removerTorresDestruidas(torres);

@@ -143,6 +143,26 @@ html, body {
   text-align: center;
 }
 
+.vergonha {
+  animation: subir 0.7s ease-out forwards;
+  color: #ffd34d;
+  font-family: monospace;
+  font-size: 22px;
+  font-weight: bold;
+  pointer-events: none;
+  position: fixed;
+  text-shadow: 2px 2px 0 #2a1c0c;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+@keyframes subir {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -140%);
+  }
+}
+
 #topo {
   align-items: center;
   background: #3b2a1a;
