@@ -25,6 +25,11 @@ const AMBIENTES = {
   minotauro: "assets/audio/minotaur-walking.mp3",
 };
 
+const FINAIS = {
+  vitoria: "assets/audio/win-music.mp3",
+  derrota: "assets/audio/lose-music.mp3",
+};
+
 const VOZES_POR_EFEITO = 4;
 const INTERVALO_MINIMO = 90;
 const VOLUME_DOS_EFEITOS = 0.6;
@@ -35,6 +40,7 @@ const vozes = {};
 const ambientes = {};
 
 let musica = null;
+let final = null;
 let volume = 0.7;
 
 function aplicarVolume() {
@@ -50,6 +56,10 @@ function aplicarVolume() {
 
   if (musica) {
     musica.volume = volume * VOLUME_DA_MUSICA;
+  }
+
+  if (final) {
+    final.volume = volume * VOLUME_DA_MUSICA;
   }
 }
 
@@ -124,4 +134,18 @@ export function tocarMusica() {
   if (musica && musica.paused) {
     musica.play().catch(function () {});
   }
+}
+
+export function tocarFinal(resultado) {
+  if (musica) {
+    musica.pause();
+  }
+
+  for (const nome of Object.keys(ambientes)) {
+    ambientes[nome].pause();
+  }
+
+  final = new Audio(FINAIS[resultado]);
+  aplicarVolume();
+  final.play().catch(function () {});
 }

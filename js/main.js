@@ -5,7 +5,7 @@ import { FOLHAS, atualizarInimigos, desenharInimigos, removerMortos, golpear } f
 import { FOLHAS as FOLHAS_DE_TORRE, TIPOS as TIPOS_DE_TORRE, criarTorre, torreEm, atualizarTorres, atualizarProjeteis, removerTorresDestruidas, desenharTorres, desenharProjeteis } from "./torres.js";
 import { ORDAS, ORCAMENTO_DE_CLIQUES, criarPartida, atualizarPartida, retomarDepoisDaCarta, pularEspera, pontuacao } from "./ondas.js";
 import { sortearCartas, aplicarCarta } from "./cartas.js";
-import { prepararSons, definirVolume, tocar, ambiente, tocarMusica } from "./audio.js";
+import { prepararSons, definirVolume, tocar, ambiente, tocarMusica, tocarFinal } from "./audio.js";
 import { explosao, faisca, poeira, fumaca, atualizarParticulas, desenharParticulas } from "./particulas.js";
 
 const canvas = document.getElementById("game-canvas");
@@ -184,6 +184,7 @@ function mostrarFim() {
 
   telaDeFim.classList.toggle("derrota", !venceu);
   telaDeFim.hidden = false;
+  tocarFinal(partida.resultado);
 }
 
 document.getElementById("reiniciar").addEventListener("click", function () {
